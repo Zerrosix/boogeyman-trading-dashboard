@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Boogeyman Elite Trading System</title>
+<style>
+:root{--bg:#0a0f1c;--panel:#111827;--panel2:#020617;--text:#d1d5db}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,Segoe UI;background:var(--bg);color:var(--text);display:flex;justify-content:center}
+.app{width:100%;max-width:1200px}
+.header{padding:16px;text-align:center;background:#050814}
+.nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:10px;background:var(--panel2)}
+.nav button{padding:10px;border:none;border-radius:10px;background:var(--panel);color:white}
+.page{display:none;padding:14px}
+.active{display:block}
+.container{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{grid-column:span 12;background:var(--panel);padding:14px;border-radius:16px}
+@media(min-width:768px){.card{grid-column:span 6}}
+@media(min-width:1100px){.card{grid-column:span 4}}
+button.primary{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:#fff}
+textarea{width:100%;background:var(--panel2);border:none;border-radius:10px;color:white;padding:10px;margin-top:10px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px}
+.day{padding:8px;text-align:center;border-radius:6px;background:#111}
+.win{background:#065f46}
+.loss{background:#7f1d1d}
+img{max-width:65%;margin-top:10px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">👻 Boogeyman Elite System</div>
+
+<div class="nav">
+<button onclick="showPage('home')">Home</button>
+<button onclick="showPage('rules')">Rules</button>
+<button onclick="showPage('events')">Playbooks</button>
+<button onclick="showPage('journal')">Journal</button>
+<button onclick="showPage('stats')">Stats</button>
+</div>
+
+<div id="home" class="page active">
+<div class="container">
+<div class="card">
+<h2>Control Center</h2>
+<button class="primary" onclick="startProcess()">Start Trading</button>
+</div>
+</div>
+</div>
+
+<div id="rules" class="page">
+<div class="container">
+<div class="card">
+<h2>Checklist</h2>
+<label><input type="checkbox" class="check"> News</label>
+<label><input type="checkbox" class="check"> Setup</label>
+<label><input type="checkbox" class="check"> Risk</label>
+<label><input type="checkbox" class="check"> Calm</label>
+<button class="primary" onclick="confirmRules()">Confirm</button>
+</div>
+</div>
+</div>
+
+<div id="events" class="page">
+<div class="container">
+<div class="card">
+<button class="primary" onclick="openEvent('fomc')">FOMC</button>
+<button class="primary" onclick="openEvent('cpi')">CPI</button>
+<button class="primary" onclick="openEvent('nfp')">NFP</button>
+</div>
+</div>
+</div>
+
+<div id="eventDetail" class="page">
+<div class="container">
+<div class="card">
+<h2 id="eventTitle"></h2>
+<ul id="eventRules"></ul>
+<textarea id="eventNotes"></textarea>
+<input type="file" onchange="saveImage(event)">
+<img id="eventImg">
+<button class="primary" onclick="saveEvent()">Save</button>
+</div>
+</div>
+</div>
+
+<div id="journal" class="page">
+<div class="container">
+<div class="card">
+<textarea id="journalText"></textarea>
+<button class="primary" onclick="saveJournal()">Save</button>
+</div>
+</div>
+</div>
+
+<div id="stats" class="page">
+<div class="container">
+<div class="card">
+<h2>Stats</h2>
+<p>Wins: <span id="wins"></span></p>
+<p>Losses: <span id="losses"></span></p>
+<button class="primary" onclick="addWin()">+ Win</button>
+<button class="primary" onclick="addLoss()">+ Loss</button>
+<button class="primary" onclick="resetStats()">Reset Stats</button>
+
+<h3>Calendar</h3>
+<button onclick="changeMonth(-1)">⬅️</button>
+<span id="monthLabel"></span>
+<button onclick="changeMonth(1)">➡️</button>
+<div id="calendar" class="calendar"></div>
+</div>
+</div>
+</div>
+
+<script>
+let currentDate=new Date();
+
+function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active')}
+function startProcess(){showPage('rules')}
+function confirmRules(){let ok=[...document.querySelectorAll('.check')].every(c=>c.checked);if(!ok)return alert('Complete checklist');showPage('home')}
+
+const eventData={fomc:{title:'FOMC',rules:['Wait','No spike']},cpi:{title:'CPI',rules:['Wait','Confirm']},nfp:{title:'NFP',rules:['Slow','Careful']}};
+
+function openEvent(e){let d=eventData[e];eventTitle.innerText=d.title;eventRules.innerHTML='';d.rules.forEach(r=>{let li=document.createElement('li');li.innerText=r;eventRules.appendChild(li)});eventNotes.value=localStorage.getItem(e+'_notes')||'';eventImg.src=localStorage.getItem(e+'_img')||'';window.currentEvent=e;showPage('eventDetail')}
+function saveEvent(){localStorage.setItem(window.currentEvent+'_notes',eventNotes.value)}
+function saveImage(e){let r=new FileReader();r.onload=()=>{eventImg.src=r.result;localStorage.setItem(window.currentEvent+'_img',r.result)};r.readAsDataURL(e.target.files[0])}
+
+function saveJournal(){localStorage.setItem('journal',journalText.value)}
+
+function addWin(){updateStat('wins');markDay('win')}
+function addLoss(){updateStat('losses');markDay('loss')}
+
+function updateStat(type){let v=+localStorage.getItem(type)||0;v++;localStorage.setItem(type,v);loadStats()}
+function resetStats(){localStorage.clear();loadStats();renderCalendar()}
+
+function loadStats(){wins.innerText=localStorage.getItem('wins')||0;losses.innerText=localStorage.getItem('losses')||0}
+
+function markDay(type){let key=getDateKey(new Date());localStorage.setItem(key,type);renderCalendar()}
+
+function getDateKey(date){return 'day_'+date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate()}
+
+function changeMonth(offset){currentDate.setMonth(currentDate.getMonth()+offset);renderCalendar()}
+
+function renderCalendar(){let cal=calendar;cal.innerHTML='';let y=currentDate.getFullYear();let m=currentDate.getMonth();monthLabel.innerText=currentDate.toLocaleString('default',{month:'long',year:'numeric'});
+let days=new Date(y,m+1,0).getDate();
+for(let i=1;i<=days;i++){let d=document.createElement('div');d.className='day';let key='day_'+y+'-'+(m+1)+'-'+i;let val=localStorage.getItem(key);if(val==='win')d.classList.add('win');if(val==='loss')d.classList.add('loss');d.innerText=i;cal.appendChild(d)}}
+
+window.onload=function(){journalText.value=localStorage.getItem('journal')||'';loadStats();renderCalendar()}
+</script>
+
+</div>
+</body>
+</html>
